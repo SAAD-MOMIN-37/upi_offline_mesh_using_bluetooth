@@ -8,6 +8,7 @@ import time
 
 from flask import Flask
 
+from .ack_service import AckService
 from .bridge_ingestion_service import BridgeIngestionService
 from .crypto_service import HybridCryptoService, ServerKeyHolder
 from .demo_service import DemoService
@@ -29,7 +30,8 @@ class AppContext:
 
         self.accounts: dict = {}
         self.tx_store = TransactionStore()
-        self.settlement = SettlementService(self.accounts, self.tx_store)
+        self.ack_service = AckService(self.crypto, self.mesh, self.event_log)
+        self.settlement = SettlementService(self.accounts, self.tx_store, ack_service=self.ack_service)
         self.bridge = BridgeIngestionService(self.crypto, self.idempotency, self.settlement,
                                               max_age_seconds=86400, event_log=self.event_log)
         self.demo = DemoService(self.crypto, self.accounts)

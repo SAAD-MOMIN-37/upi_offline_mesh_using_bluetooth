@@ -12,6 +12,7 @@ import itertools
 import threading
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Optional
 
 from .models import Transaction, TxStatus
 
@@ -58,13 +59,26 @@ class TransactionStore:
 
 
 class SettlementService:
-    def __init__(self, accounts: dict, tx_store: TransactionStore):
+    def __init__(
+        self,
+        accounts: dict,
+        tx_store: TransactionStore,
+        ack_service: Optional["AckService"] = None,
+    ):
         self.accounts = accounts        # vpa -> Account
         self.tx_store = tx_store
         self._lock = threading.Lock()   # simulates the @Transactional boundary
+        self.ack_service = ack_service
 
-    def settle(self, instruction: dict, packet_hash: str,
-               bridge_node_id: str, hop_count: int) -> Transaction:
+    def settle(
+        self,
+        instruction: dict,
+        packet_hash: str,
+        bridge_node_id: str,
+        hop_count: int,
+        original_packet_id: str = "",
+        ack_key_b64: str = "",
+    ) -> Transaction:
         sender_vpa = instruction["senderVpa"]
         receiver_vpa = instruction["receiverVpa"]
         amount = Decimal(str(instruction["amount"]))
@@ -83,13 +97,35 @@ class SettlementService:
                 raise ValueError("Amount must be positive")
 
             if sender.balance < amount:
-                return self.tx_store.record(
+                tx = self.tx_store.record(
                     packet_hash, sender_vpa, receiver_vpa, amount,
                     signed_at, bridge_node_id, hop_count, TxStatus.REJECTED)
+                if self.ack_service and ack_key_b64:
+                    self.ack_service.generate_and_inject_ack(
+                        transaction_id=tx.id,
+                        status=TxStatus.REJECTED,
+                        amount=float(amount),
+                        original_packet_id=original_packet_id,
+                        ack_key_b64=ack_key_b64,
+                        bridge_node_id=bridge_node_id,
+                        hop_count=hop_count,
+                    )
+                return tx
 
             sender.balance -= amount
             receiver.balance += amount
 
-            return self.tx_store.record(
+            tx = self.tx_store.record(
                 packet_hash, sender_vpa, receiver_vpa, amount,
                 signed_at, bridge_node_id, hop_count, TxStatus.SETTLED)
+            if self.ack_service and ack_key_b64:
+                self.ack_service.generate_and_inject_ack(
+                    transaction_id=tx.id,
+                    status=TxStatus.SETTLED,
+                    amount=float(amount),
+                    original_packet_id=original_packet_id,
+                    ack_key_b64=ack_key_b64,
+                    bridge_node_id=bridge_node_id,
+                    hop_count=hop_count,
+                )
+            return tx

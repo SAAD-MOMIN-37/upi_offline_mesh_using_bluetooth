@@ -151,3 +151,41 @@ def register_routes(app: Flask, ctx) -> None:
     @app.route("/api/transactions")
     def list_transactions():
         return jsonify([t.to_dict() for t in ctx.tx_store.top20()])
+
+    @app.route("/api/transactions/status")
+    def transaction_status():
+        """Get transaction status by packetId (pull fallback for ack loss)."""
+        packet_id = request.args.get("packetId")
+        if not packet_id:
+            return jsonify({"error": "packetId required"}), 400
+
+        # Find transaction by packetId - we need to look up via packet_hash
+        # For now, search through recent transactions
+        for tx in ctx.tx_store.top20():
+            # We can't directly map packetId to transaction without storing it
+            # In a real implementation, we'd have a packetId -> packet_hash mapping
+            pass
+
+        # Fallback: check if any device holds an ack for this packet
+        for device in ctx.mesh.devices.values():
+            for pkt in device.held_packets():
+                if pkt.get("_is_ack") and pkt.get("_ackTransactionId"):
+                    if pkt.get("originalPacketId") == packet_id:
+                        # Found ack packet, get transaction details
+                        tx_id = pkt["_ackTransactionId"]
+                        for tx in ctx.tx_store.top20():
+                            if tx.id == tx_id:
+                                return jsonify({
+                                    "transactionId": tx.id,
+                                    "status": tx.status.value,
+                                    "amount": str(tx.amount),
+                                    "settledAt": tx.settled_at.isoformat(),
+                                    "bridgeNodeId": tx.bridge_node_id,
+                                    "foundVia": "ack_packet",
+                                })
+        
+        return jsonify({
+            "transactionId": None,
+            "status": "PENDING",
+            "message": "Transaction not yet settled or ack not received",
+        })

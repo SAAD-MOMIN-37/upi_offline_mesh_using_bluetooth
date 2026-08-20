@@ -75,7 +75,13 @@ class BridgeIngestionService:
                         "reason": "future_dated", "transactionId": None}
 
             # ---- Settle ----
-            tx = self.settlement.settle(instruction, packet_hash, bridge_node_id, hop_count)
+            original_packet_id = instruction.get("originalPacketId", "")
+            ack_key_b64 = instruction.get("ackKey", "")
+            tx = self.settlement.settle(
+                instruction, packet_hash, bridge_node_id, hop_count,
+                original_packet_id=original_packet_id,
+                ack_key_b64=ack_key_b64,
+            )
             if tx.status.value == "REJECTED":
                 if self.event_log:
                     self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_INSUFFICIENT_BALANCE)

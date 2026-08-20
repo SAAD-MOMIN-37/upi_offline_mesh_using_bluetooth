@@ -36,6 +36,13 @@ class DemoService:
         reference) would run on the phone itself, using a public key cached
         during a previous online session.
         """
+        import os
+        import base64
+
+        # Generate a random AES-256 key for ack encryption (sender keeps this)
+        ack_key = os.urandom(32)
+        ack_key_b64 = base64.b64encode(ack_key).decode("utf-8")
+
         instruction = {
             "senderVpa": sender_vpa,
             "receiverVpa": receiver_vpa,
@@ -43,13 +50,16 @@ class DemoService:
             "pinHash": hashlib.sha256(pin.encode("utf-8")).hexdigest(),
             "nonce": str(uuid.uuid4()),                                   # guarantees uniqueness
             "signedAt": int(datetime.now(timezone.utc).timestamp() * 1000),  # for freshness check
+            "ackKey": ack_key_b64,  # Symmetric key for ack encryption
+            "originalPacketId": str(uuid.uuid4()),  # Track original packet for ack correlation
         }
 
         ciphertext = self.crypto.encrypt(instruction)
 
         return {
-            "packetId": str(uuid.uuid4()),
+            "packetId": instruction["originalPacketId"],
             "ttl": ttl,
             "createdAt": int(datetime.now(timezone.utc).timestamp() * 1000),
             "ciphertext": ciphertext,
+            "_ackKey": ack_key_b64,  # Stored locally on sender device (not sent over mesh)
         }
