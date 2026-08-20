@@ -11,6 +11,7 @@ from flask import Flask
 from .bridge_ingestion_service import BridgeIngestionService
 from .crypto_service import HybridCryptoService, ServerKeyHolder
 from .demo_service import DemoService
+from .event_log import MeshEventLog
 from .idempotency_service import IdempotencyService
 from .mesh_simulator import MeshSimulatorService
 from .settlement_service import SettlementService, TransactionStore
@@ -23,13 +24,14 @@ class AppContext:
         self.server_key = ServerKeyHolder()
         self.crypto = HybridCryptoService(self.server_key)
         self.idempotency = IdempotencyService(ttl_seconds=259200)
-        self.mesh = MeshSimulatorService()
+        self.event_log = MeshEventLog()
+        self.mesh = MeshSimulatorService(event_log=self.event_log)
 
         self.accounts: dict = {}
         self.tx_store = TransactionStore()
         self.settlement = SettlementService(self.accounts, self.tx_store)
         self.bridge = BridgeIngestionService(self.crypto, self.idempotency, self.settlement,
-                                              max_age_seconds=86400)
+                                              max_age_seconds=86400, event_log=self.event_log)
         self.demo = DemoService(self.crypto, self.accounts)
         self.demo.seed_accounts()
 

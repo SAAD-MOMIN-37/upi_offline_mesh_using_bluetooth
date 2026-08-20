@@ -16,6 +16,8 @@ ciphertext — matching the JSON shape the dashboard JS already expects.
 import threading
 from typing import Optional
 
+from .event_log import MeshEventLog
+
 
 class VirtualDevice:
     def __init__(self, device_id: str, has_internet: bool):
@@ -46,8 +48,9 @@ class VirtualDevice:
 
 
 class MeshSimulatorService:
-    def __init__(self):
+    def __init__(self, event_log: Optional[MeshEventLog] = None):
         self.devices: dict[str, VirtualDevice] = {}
+        self.event_log = event_log
         self._seed_default_devices()
 
     def _seed_default_devices(self):
@@ -98,6 +101,13 @@ class MeshSimulatorService:
                     copy["ttl"] = pkt["ttl"] - 1
                     dst.hold(copy)
                     transfers += 1
+                    if self.event_log:
+                        self.event_log.log_gossip_hop(
+                            packet_id=pkt["packetId"],
+                            from_device=src.device_id,
+                            to_device=dst.device_id,
+                            ttl=copy["ttl"],
+                        )
 
         return transfers, self.snapshot_map()
 

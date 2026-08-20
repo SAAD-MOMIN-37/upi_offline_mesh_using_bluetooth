@@ -22,17 +22,21 @@ call, which unconditionally used that outcome regardless of tx.status.
 import logging
 from datetime import datetime, timezone
 
+from .event_log import BridgeUploadResult, MeshEventLog
+
 logger = logging.getLogger("upimesh.bridge")
 
 
 class BridgeIngestionService:
-    def __init__(self, crypto, idempotency, settlement, max_age_seconds: int = 86400):
+    def __init__(self, crypto, idempotency, settlement, max_age_seconds: int = 86400, event_log: MeshEventLog | None = None):
         self.crypto = crypto
         self.idempotency = idempotency
         self.settlement = settlement
         self.max_age_seconds = max_age_seconds
+        self.event_log = event_log
 
     def ingest(self, packet: dict, bridge_node_id: str, hop_count: int) -> dict:
+        packet_id = packet.get("packetId", "unknown")
         try:
             packet_hash = self.crypto.hash_ciphertext(packet["ciphertext"])
 
@@ -40,6 +44,8 @@ class BridgeIngestionService:
             if not self.idempotency.claim(packet_hash):
                 logger.info("DUPLICATE packet %s from bridge %s — dropped",
                             packet_hash[:12] + "...", bridge_node_id)
+                if self.event_log:
+                    self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.DUPLICATE)
                 return {"outcome": "DUPLICATE_DROPPED", "packetHash": packet_hash,
                         "reason": None, "transactionId": None}
 
@@ -48,6 +54,8 @@ class BridgeIngestionService:
                 instruction = self.crypto.decrypt(packet["ciphertext"])
             except Exception as e:
                 logger.warning("Decryption failed for packet %s: %s", packet_hash[:12] + "...", e)
+                if self.event_log:
+                    self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_DECRYPT_FAIL)
                 return {"outcome": "INVALID", "packetHash": packet_hash,
                         "reason": "decryption_failed", "transactionId": None}
 
@@ -56,18 +64,30 @@ class BridgeIngestionService:
             age_seconds = (now_ms - instruction["signedAt"]) / 1000
             if age_seconds > self.max_age_seconds:
                 logger.warning("Packet %s too old (%ss), rejected", packet_hash[:12] + "...", age_seconds)
+                if self.event_log:
+                    self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_STALE)
                 return {"outcome": "INVALID", "packetHash": packet_hash,
                         "reason": "stale_packet", "transactionId": None}
             if age_seconds < -300:  # small clock-skew tolerance
+                if self.event_log:
+                    self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_FUTURE_DATED)
                 return {"outcome": "INVALID", "packetHash": packet_hash,
                         "reason": "future_dated", "transactionId": None}
 
             # ---- Settle ----
             tx = self.settlement.settle(instruction, packet_hash, bridge_node_id, hop_count)
+            if tx.status.value == "REJECTED":
+                if self.event_log:
+                    self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_INSUFFICIENT_BALANCE)
+            else:
+                if self.event_log:
+                    self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.SETTLED)
             return {"outcome": "SETTLED", "packetHash": packet_hash,
                      "reason": None, "transactionId": tx.id}
 
         except Exception as e:
             logger.error("Ingestion error: %s", e, exc_info=True)
+            if self.event_log:
+                self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.INTERNAL_ERROR)
             return {"outcome": "INVALID", "packetHash": "?",
                      "reason": f"internal_error: {e}", "transactionId": None}

@@ -103,7 +103,34 @@ def register_routes(app: Flask, ctx) -> None:
     def mesh_reset():
         ctx.mesh.reset_mesh()
         ctx.idempotency.clear()
+        ctx.event_log.clear()
         return jsonify({"status": "mesh and idempotency cache cleared"})
+
+    @app.route("/api/mesh/events")
+    def mesh_events():
+        since_ms = request.args.get("since_ms", type=int)
+        limit = request.args.get("limit", default=1000, type=int)
+        events = ctx.event_log.get_events(since_ms=since_ms, limit=limit)
+        return jsonify({"events": events})
+
+    @app.route("/api/mesh/events/stream")
+    def mesh_events_stream():
+        """Server-Sent Events stream for real-time mesh events."""
+        from flask import Response
+        import json
+        import time
+
+        def event_stream():
+            last_timestamp = 0
+            while True:
+                events = ctx.event_log.get_events(since_ms=last_timestamp, limit=100)
+                if events:
+                    for event in events:
+                        last_timestamp = event.get("timestamp_ms", 0)
+                        yield f"data: {json.dumps(event)}\n\n"
+                time.sleep(0.5)
+
+        return Response(event_stream(), mimetype="text/event-stream")
 
     # -------------------------------------------------------------- bridge
     @app.route("/api/bridge/ingest", methods=["POST"])
