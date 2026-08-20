@@ -131,3 +131,10 @@ class MeshSimulatorService:
     def reset_mesh(self) -> None:
         for d in self.devices.values():
             d.clear()
+
+    def remove_device(self, device_id: str) -> bool:
+        """Remove a device from the mesh (kill-switch). Returns True if removed."""
+        if device_id in self.devices:
+            del self.devices[device_id]
+            return True
+        return False

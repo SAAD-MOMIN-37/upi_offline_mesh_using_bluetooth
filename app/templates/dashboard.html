@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>UPI Offline Mesh — Demo</title>
+    <title>UPI Offline Mesh — Live Demo</title>
     <style>
         * { box-sizing: border-box; }
 
@@ -13,10 +13,6 @@
         @keyframes fadeIn {
             from { opacity: 0; }
             to   { opacity: 1; }
-        }
-        @keyframes pulseDot {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(46, 160, 67, 0.55); }
-            50%      { box-shadow: 0 0 0 6px rgba(46, 160, 67, 0); }
         }
         @keyframes flashGreen {
             0%   { background-color: rgba(46, 160, 67, 0.35); }
@@ -43,6 +39,23 @@
             70%  { opacity: 1; }
             100% { transform: translate(var(--x), var(--y)) rotate(var(--rot)) scale(0.2); opacity: 0; }
         }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+        }
+        @keyframes flashRed {
+            0% { background: rgba(248, 81, 73, 0.4); }
+            100% { background: transparent; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes raceResolve {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -59,7 +72,7 @@
         h2 {
             color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 4px; margin-top: 32px;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         .grid { display: grid; gap: 16px; }
         .grid-2 { grid-template-columns: 1fr 1fr; }
         .grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -75,42 +88,8 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.35);
             transform: translateY(-2px);
         }
-        .card:nth-of-type(1) { animation-delay: 0.02s; }
-        .card:nth-of-type(2) { animation-delay: 0.08s; }
-        .card:nth-of-type(3) { animation-delay: 0.14s; }
-        .card:nth-of-type(4) { animation-delay: 0.2s; }
-
-        .device {
-            border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin-bottom: 8px;
-            background: transparent;
-            transition: border-color 0.3s ease, transform 0.2s ease;
-        }
-        .device.just-in { animation: fadeSlideUp 0.35s ease-out both; }
-        .device:hover { transform: translateX(3px); border-color: #58a6ff; }
-        .device.bridge { border-color: #2ea043; }
-        .device.offline { opacity: 0.85; }
-
-        .badge {
-            display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
-            font-weight: 600; margin-left: 8px;
-            transition: transform 0.2s ease;
-        }
-        .badge-online {
-            background: #2ea043; color: white;
-        }
-        .badge-offline { background: #6e7681; color: white; }
-
-        .packet-id {
-            font-family: 'Consolas', 'Monaco', monospace; font-size: 11px;
-            background: #21262d; padding: 2px 6px; border-radius: 3px; margin: 2px;
-            display: inline-block;
-            transition: background 0.2s ease, transform 0.15s ease;
-        }
-        .packet-id.just-in { animation: fadeIn 0.3s ease-out both; }
-        .packet-id:hover { background: #30363d; transform: scale(1.05); }
 
         button {
-            /* --- Liquid glass button: translucent gradient + blur + shine sweep --- */
             background: linear-gradient(135deg, rgba(35,134,54,0.9), rgba(35,134,54,0.55));
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
@@ -128,7 +107,6 @@
             overflow: hidden;
             isolation: isolate;
         }
-        /* Diagonal shine that sweeps across on hover — the "liquid" highlight */
         button::before {
             content: "";
             position: absolute; inset: 0;
@@ -151,6 +129,9 @@
         button.secondary { background: linear-gradient(135deg, rgba(31,111,235,0.9), rgba(31,111,235,0.55)); box-shadow: 0 4px 16px rgba(31,111,235,0.35), inset 0 1px 0 rgba(255,255,255,0.25); }
         button.secondary:hover { box-shadow: 0 8px 22px rgba(31,111,235,0.45), inset 0 1px 0 rgba(255,255,255,0.3); }
 
+        button.kill { background: linear-gradient(135deg, rgba(218,54,51,0.8), rgba(218,54,51,0.4)); box-shadow: 0 4px 16px rgba(218,54,51,0.3), inset 0 1px 0 rgba(255,255,255,0.2); font-size: 11px; padding: 4px 10px; }
+        button.kill:hover { box-shadow: 0 6px 18px rgba(218,54,51,0.5), inset 0 1px 0 rgba(255,255,255,0.25); }
+
         button.loading { color: transparent; text-shadow: none; pointer-events: none; }
         button.loading::after {
             content: ""; position: absolute; top: 50%; left: 50%;
@@ -169,9 +150,9 @@
             outline: none; border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
         }
 
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #30363d; }
-        th { color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+        th { color: #8b949e; font-weight: 600; font-size: 11px; text-transform: uppercase; }
         tbody tr { transition: background 0.2s ease; }
         tbody tr.just-in { animation: rowIn 0.4s ease-out both; }
         tbody tr:hover { background: #1c2129; }
@@ -180,12 +161,13 @@
         .status-REJECTED { color: #f85149; font-weight: 600; }
         .status-DUPLICATE_DROPPED { color: #d29922; font-weight: 600; }
         .status-INVALID { color: #f85149; font-weight: 600; }
+        .status-PENDING { color: #58a6ff; font-weight: 600; }
 
         #log {
             background: transparent;
             color: #7ee787; padding: 12px; border-radius: 6px;
-            font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-            max-height: 220px; overflow-y: auto; white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace; font-size: 11px;
+            max-height: 200px; overflow-y: auto; white-space: pre-wrap;
             border: 1px solid #30363d;
         }
         #log .log-line { animation: fadeSlideUp 0.25s ease-out both; display: block; }
@@ -209,7 +191,6 @@
         .balance.changed { animation: flashGreen 1.2s ease-out; }
         .small { font-size: 12px; color: #8b949e; }
 
-        /* --- Success checkmark (settlement confirmation) --- */
         .success-toast {
             display: none;
             align-items: center;
@@ -237,7 +218,6 @@
         }
         .success-toast-text { font-size: 13px; color: #7ee787; }
 
-        /* --- Confetti burst (fires from the flush button on settlement) --- */
         .confetti-wrapper { position: relative; display: inline-flex; }
         .confetti-piece {
             position: absolute;
@@ -248,7 +228,6 @@
             animation: confettiBurst 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* --- Progress ring (settlement success rate after a flush) --- */
         .ring-box { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
         .ring-svg { transform: rotate(0deg); }
         .ring-track { fill: none; stroke: #30363d; stroke-width: 8; }
@@ -266,18 +245,257 @@
         .ring-label { font-size: 12px; color: #8b949e; }
         .ring-pct { font-family: 'Consolas', monospace; font-weight: 700; color: #e6edf3; }
 
-        /* --- Gravity stars background canvas --- */
+        /* --- Mesh Visualization Canvas --- */
+        #meshCanvas {
+            width: 100%;
+            height: 400px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            display: block;
+        }
+
+        /* --- View Toggle --- */
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .view-toggle button {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(49,55,61,0.9), rgba(31,37,43,0.8));
+            box-shadow: none;
+        }
+        .view-toggle button.active {
+            background: linear-gradient(135deg, #58a6ff, #3b82f6);
+            box-shadow: 0 4px 16px rgba(88,166,255,0.4);
+        }
+
+        /* --- Technical Panel --- */
+        #technicalPanel {
+            display: none;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #technicalPanel.visible { display: block; }
+        .tech-row {
+            display: flex;
+            gap: 16px;
+            padding: 8px 0;
+            border-bottom: 1px solid #21262d;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            flex-wrap: wrap;
+        }
+        .tech-row:last-child { border-bottom: none; }
+        .tech-label { color: #8b949e; min-width: 120px; }
+        .tech-value { color: #e6edf3; font-weight: 500; }
+        .tech-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-settled { background: #2ea043; color: white; }
+        .badge-duplicate { background: #d29922; color: white; }
+        .badge-rejected { background: #f85149; color: white; }
+        .badge-pending { background: #58a6ff; color: white; }
+
+        /* --- Race Visualization --- */
+        .race-panel {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+        .race-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.02);
+            transition: all 0.3s ease;
+        }
+        .race-entry.winner {
+            background: rgba(46, 160, 67, 0.15);
+            border: 1px solid #2ea043;
+            animation: raceResolve 0.5s ease-out;
+        }
+        .race-entry.loser {
+            background: rgba(248, 81, 73, 0.15);
+            border: 1px solid #f85149;
+            animation: flashRed 0.5s ease-out 3;
+        }
+        .race-entry.pending {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid #58a6ff;
+        }
+        .race-device { font-weight: 600; min-width: 140px; }
+        .race-time { font-family: 'Consolas', monospace; font-size: 11px; color: #8b949e; }
+        .race-result { font-weight: 600; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .race-result.settled { background: #2ea043; color: white; }
+        .race-result.duplicate { background: #d29922; color: white; }
+        .race-result.rejected { background: #f85149; color: white; }
+        .race-result.pending { background: #58a6ff; color: white; }
+
+        /* --- Device Node in Canvas --- */
+        .device-info {
+            position: absolute;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            transform: translate(-50%, -120%);
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .device-info.bridge { border-color: #2ea043; }
+        .device-info.killed { opacity: 0.4; border-color: #f85149; }
+
+        /* --- Kill Switch Button on Canvas --- */
+        .kill-btn-overlay {
+            position: absolute;
+            transform: translate(-50%, 40px);
+            z-index: 11;
+            pointer-events: auto;
+        }
+
+        /* --- Journey Modal --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #8b949e;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            box-shadow: none;
+        }
+        .modal-close:hover { color: #e6edf3; }
+        .journey-step {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: #0d1117;
+            border: 1px solid #21262d;
+        }
+        .journey-step.current { border-color: #58a6ff; background: rgba(88,166,255,0.05); }
+        .journey-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .journey-icon.inject { background: #58a6ff; color: white; }
+        .journey-icon.gossip { background: #a371f7; color: white; }
+        .journey-icon.bridge { background: #2ea043; color: white; }
+        .journey-icon.ack { background: #f781a8; color: white; }
+        .journey-details { flex: 1; }
+        .journey-title { font-weight: 600; color: #e6edf3; }
+        .journey-meta { font-size: 11px; color: #8b949e; font-family: 'Consolas', monospace; margin-top: 4px; }
+
         #starsBg {
             position: fixed; inset: 0; width: 100%; height: 100%;
             z-index: 0; pointer-events: none; display: block;
         }
         .container { position: relative; z-index: 1; }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #21262d;
+            font-size: 11px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .legend-dot.offline { background: #6e7681; }
+        .legend-dot.bridge { background: #2ea043; }
+        .legend-dot.killed { background: #f85149; }
+        .legend-dot.packet { background: #58a6ff; }
+        .legend-dot.ack { background: #f781a8; }
+
+        .packet-trail {
+            stroke: #58a6ff;
+            stroke-width: 2;
+            stroke-dasharray: 6, 4;
+            opacity: 0.6;
+        }
+        .ack-trail {
+            stroke: #f781a8;
+            stroke-width: 2;
+            stroke-dasharray: 6, 4;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
 <canvas id="starsBg"></canvas>
 <div class="container">
-    <h1>📡 UPI Offline Mesh — Live Demo</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h1>📡 UPI Offline Mesh — Live Demo</h1>
+        <div class="view-toggle">
+            <button id="viewSimple" class="active" onclick="setView('simple')">📺 Simple View</button>
+            <button id="viewTechnical" onclick="setView('technical')">🔧 Technical View</button>
+        </div>
+    </div>
     <p class="small">
         Send money in a basement with zero internet. Encrypted packets gossip from phone to phone
         until one with 4G reaches the backend.
@@ -340,12 +558,30 @@
         </div>
     </div>
 
-    <div class="grid grid-2">
-        <div class="card">
-            <h2>📱 Mesh Devices</h2>
-            <div id="devices"></div>
+    <div class="card">
+        <h2>🕸️ Live Mesh Visualization</h2>
+        <canvas id="meshCanvas"></canvas>
+        <div class="legend">
+            <div class="legend-item"><span class="legend-dot offline"></span> Offline Device</div>
+            <div class="legend-item"><span class="legend-dot bridge"></span> Bridge (4G)</div>
+            <div class="legend-item"><span class="legend-dot killed"></span> Killed Bridge</div>
+            <div class="legend-item"><span class="legend-dot packet"></span> Forward Packet</div>
+            <div class="legend-item"><span class="legend-dot ack"></span> Ack Packet</div>
         </div>
+    </div>
 
+    <div id="racePanel" class="race-panel" style="display:none">
+        <h3 style="margin-top:0">🏁 Bridge Race — Competing Uploads</h3>
+        <div id="raceEntries"></div>
+        <p class="small" style="margin-top:8px">All bridges attempt upload simultaneously. Only the first atomic claim wins — others see "Duplicate". This is the security system working correctly.</p>
+    </div>
+
+    <div id="technicalPanel">
+        <h3 style="margin-top:0">🔧 Technical Event Log</h3>
+        <div id="techEvents"></div>
+    </div>
+
+    <div class="grid grid-2">
         <div class="card">
             <h2>🏦 Account Balances</h2>
             <table id="accounts-table">
@@ -354,17 +590,17 @@
             </table>
             <p class="small" id="cacheInfo"></p>
         </div>
-    </div>
 
-    <div class="card" style="margin-top: 16px">
-        <h2>📜 Transaction Ledger</h2>
-        <table id="tx-table">
-            <thead><tr>
-                <th>ID</th><th>From</th><th>To</th><th>Amount</th>
-                <th>Status</th><th>Bridge</th><th>Hops</th><th>Settled</th>
-            </tr></thead>
-            <tbody></tbody>
-        </table>
+        <div class="card">
+            <h2>📜 Transaction Ledger</h2>
+            <table id="tx-table">
+                <thead><tr>
+                    <th>ID</th><th>From</th><th>To</th><th>Amount</th>
+                    <th>Status</th><th>Bridge</th><th>Hops</th><th>Settled</th>
+                </tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="card" style="margin-top: 16px">
@@ -373,8 +609,21 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="journeyModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 style="margin:0">📍 Packet Journey</h2>
+            <button class="modal-close" onclick="closeJourneyModal()">&times;</button>
+        </div>
+        <div id="journeySteps"></div>
+        <div style="margin-top:16px; padding:12px; background:#0d1117; border-radius:6px; font-family:'Consolas',monospace; font-size:11px;">
+            <div id="journeySummary"></div>
+        </div>
+    </div>
+</div>
+
 <script>
-// --- Confetti burst: fires radially from the given button element ---
+// --- Confetti burst ---
 function burstConfetti(btn) {
     const colors = ['#FF4B4B','#FFD93D','#6BCB77','#4D96FF','#FF6B9D','#C084FC'];
     const wrapper = btn.closest('.confetti-wrapper') || btn.parentNode;
@@ -399,19 +648,18 @@ function burstConfetti(btn) {
     }
 }
 
-// --- Success toast: brief spring-in checkmark with a message ---
+// --- Success toast ---
 function showSuccessToast(text) {
     const toast = document.getElementById('successToast');
     document.getElementById('successToastText').textContent = text;
-    // Re-trigger the spring-in animation even if it's already visible
     toast.classList.remove('show');
-    void toast.offsetWidth; // force reflow so the animation restarts
+    void toast.offsetWidth;
     toast.classList.add('show');
     clearTimeout(showSuccessToast._t);
     showSuccessToast._t = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-// --- Progress ring: shows % of last flush's uploads that settled ---
+// --- Progress ring ---
 function setSettlementRing(percent) {
     const circumference = 283;
     const offset = circumference * (1 - percent / 100);
@@ -423,8 +671,6 @@ function setSettlementRing(percent) {
 }
 
 // --- Gravity Stars Background ---
-// A field of stars that drift slowly and get a gentle gravitational pull
-// toward the cursor. Runs on a <canvas> behind all content (z-index: 0).
 (function gravityStars() {
     const canvas = document.getElementById('starsBg');
     const ctx = canvas.getContext('2d');
@@ -466,7 +712,6 @@ function setSettlementRing(percent) {
         ctx.clearRect(0, 0, w, h);
 
         for (const s of stars) {
-            // gentle gravitational pull toward the cursor, within a radius
             if (mouse.x !== null) {
                 const dx = mouse.x - s.x;
                 const dy = mouse.y - s.y;
@@ -480,10 +725,9 @@ function setSettlementRing(percent) {
 
             s.x += s.vx;
             s.y += s.vy;
-            s.vx *= 0.98; // gentle drag so stars don't accelerate forever
+            s.vx *= 0.98;
             s.vy *= 0.98;
 
-            // wrap around edges
             if (s.x < -5) s.x = w + 5; else if (s.x > w + 5) s.x = -5;
             if (s.y < -5) s.y = h + 5; else if (s.y > h + 5) s.y = -5;
 
@@ -501,7 +745,443 @@ function setSettlementRing(percent) {
     tick();
 })();
 
-let prevBalances = {}; // vpa -> last-seen balance, so we know what changed
+// ============================================================
+// MESH VISUALIZATION ENGINE
+// ============================================================
+const meshCanvas = document.getElementById('meshCanvas');
+const meshCtx = meshCanvas.getContext('2d');
+let canvasW, canvasH;
+let devices = {}; // deviceId -> {x, y, vx, vy, hasInternet, packetCount, packetIds, killed}
+let packets = []; // animated packets: {id, fromX, fromY, toX, toY, progress, color, isAck, packetId, timestamp}
+let races = {}; // packetId -> {entries: [], resolved: false, winner: null}
+let eventSource = null;
+let lastEventTimestamp = 0;
+let currentView = 'simple';
+let devicePositions = {}; // deviceId -> {x, y} (stable positions from force layout)
+let animationFrameId = null;
+
+function resizeCanvas() {
+    const rect = meshCanvas.parentElement.getBoundingClientRect();
+    canvasW = rect.width;
+    canvasH = 400;
+    meshCanvas.width = canvasW * window.devicePixelRatio;
+    meshCanvas.height = canvasH * window.devicePixelRatio;
+    meshCanvas.style.width = canvasW + 'px';
+    meshCanvas.style.height = canvasH + 'px';
+    meshCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    initDevicePositions();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Force-directed layout for device positions
+function initDevicePositions() {
+    const deviceIds = Object.keys(devices);
+    if (deviceIds.length === 0) return;
+    
+    const centerX = canvasW / 2;
+    const centerY = canvasH / 2;
+    const radius = Math.min(canvasW, canvasH) * 0.35;
+    
+    deviceIds.forEach((id, i) => {
+        const angle = (i / deviceIds.length) * Math.PI * 2 - Math.PI / 2;
+        if (!devicePositions[id]) {
+            devicePositions[id] = {
+                x: centerX + Math.cos(angle) * radius,
+                y: centerY + Math.sin(angle) * radius,
+                vx: 0,
+                vy: 0
+            };
+        }
+    });
+    
+    // Run a few force iterations to separate nodes
+    for (let iter = 0; iter < 50; iter++) {
+        deviceIds.forEach(id => {
+            const node = devicePositions[id];
+            let fx = 0, fy = 0;
+            
+            // Repulsion from other nodes
+            deviceIds.forEach(otherId => {
+                if (otherId === id) return;
+                const other = devicePositions[otherId];
+                const dx = node.x - other.x;
+                const dy = node.y - other.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const force = 1000 / (dist * dist);
+                fx += (dx / dist) * force;
+                fy += (dy / dist) * force;
+            });
+            
+            // Attraction to center
+            const dx = centerX - node.x;
+            const dy = centerY - node.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            fx += (dx / dist) * 0.1;
+            fy += (dy / dist) * 0.1;
+            
+            node.vx = (node.vx + fx) * 0.5;
+            node.vy = (node.vy + fy) * 0.5;
+            node.x += node.vx;
+            node.y += node.vy;
+        });
+    }
+}
+
+// Fetch mesh state and initialize
+async function fetchMeshState() {
+    const res = await fetch('/api/mesh/state');
+    const data = await res.json();
+    devices = {};
+    data.devices.forEach(d => {
+        devices[d.deviceId] = {
+            deviceId: d.deviceId,
+            hasInternet: d.hasInternet,
+            packetCount: d.packetCount,
+            packetIds: d.packetIds,
+            killed: false
+        };
+    });
+    document.getElementById('cacheInfo').textContent = `Idempotency cache size: ${data.idempotencyCacheSize}`;
+    initDevicePositions();
+}
+
+// SSE Event Stream for real-time mesh events
+function connectEventStream() {
+    if (eventSource) eventSource.close();
+    
+    eventSource = new EventSource('/api/mesh/events/stream');
+    
+    eventSource.onmessage = (e) => {
+        try {
+            const event = JSON.parse(e.data);
+            handleMeshEvent(event);
+        } catch (err) {
+            console.warn('Failed to parse SSE event:', err);
+        }
+    };
+    
+    eventSource.onerror = () => {
+        console.warn('SSE connection lost, falling back to polling');
+        eventSource.close();
+        eventSource = null;
+        startPollingFallback();
+    };
+}
+
+function startPollingFallback() {
+    if (window.pollInterval) clearInterval(window.pollInterval);
+    window.pollInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`/api/mesh/events?since_ms=${lastEventTimestamp}&limit=100`);
+            const data = await res.json();
+            data.events.forEach(handleMeshEvent);
+        } catch (err) {
+            console.warn('Polling failed:', err);
+        }
+    }, 1000);
+}
+
+function handleMeshEvent(event) {
+    lastEventTimestamp = Math.max(lastEventTimestamp, event.timestamp_ms || 0);
+    
+    if (event.event_type === 'gossip_hop') {
+        handleGossipHop(event);
+    } else if (event.event_type === 'bridge_upload') {
+        handleBridgeUpload(event);
+    }
+    
+    // Update technical panel
+    if (currentView === 'technical') {
+        renderTechnicalEvent(event);
+    }
+}
+
+function handleGossipHop(event) {
+    const fromPos = devicePositions[event.from_device];
+    const toPos = devicePositions[event.to_device];
+    if (!fromPos || !toPos) return;
+    
+    const isAck = event.packet_id.includes('ack') || event.packet_id.startsWith('ack-');
+    
+    packets.push({
+        id: event.packet_id + '-' + Date.now() + '-' + Math.random(),
+        packetId: event.packet_id,
+        fromX: fromPos.x,
+        fromY: fromPos.y,
+        toX: toPos.x,
+        toY: toPos.y,
+        progress: 0,
+        color: isAck ? '#f781a8' : '#58a6ff',
+        isAck: isAck,
+        timestamp: event.timestamp_ms,
+        ttl: event.ttl
+    });
+    
+    // Update device packet counts
+    if (devices[event.to_device]) {
+        devices[event.to_device].packetCount++;
+    }
+}
+
+function handleBridgeUpload(event) {
+    const devicePos = devicePositions[event.device_id];
+    if (!devicePos) return;
+    
+    const packetId = event.packet_id;
+    const result = event.result;
+    
+    // Track race entries
+    if (!races[packetId]) {
+        races[packetId] = { entries: [], resolved: false, winner: null };
+    }
+    
+    const race = races[packetId];
+    const entry = {
+        deviceId: event.device_id,
+        result: result,
+        timestamp: event.timestamp_ms,
+        timestampStr: new Date(event.timestamp_ms).toISOString().substr(11, 12) // HH:MM:SS.mmm
+    };
+    race.entries.push(entry);
+    
+    // Sort by timestamp
+    race.entries.sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Determine winner (first settled)
+    if (!race.resolved) {
+        const settledEntry = race.entries.find(e => e.result === 'settled');
+        if (settledEntry) {
+            race.resolved = true;
+            race.winner = settledEntry.deviceId;
+            
+            // Mark all entries as winner/loser
+            race.entries.forEach(e => {
+                e.isWinner = (e.deviceId === race.winner);
+            });
+        }
+    }
+    
+    // Show race panel if multiple bridges
+    if (race.entries.length > 1) {
+        document.getElementById('racePanel').style.display = 'block';
+        renderRacePanel(packetId);
+    }
+    
+    // If settled, trigger confetti and success toast
+    if (result === 'settled') {
+        burstConfetti(document.getElementById('flushBtn'));
+        showSuccessToast('Payment settled successfully');
+        
+        // Update settlement ring
+        const total = race.entries.length;
+        const settled = race.entries.filter(e => e.result === 'settled').length;
+        setSettlementRing((settled / total) * 100);
+    }
+    
+    // Create ack packet animation if settled
+    if (result === 'settled' && devicePos) {
+        // Find sender device (the one that originated the packet)
+        const senderDevice = Object.keys(devices).find(id => id.includes('alice') || id.includes('sender'));
+        const senderPos = devicePositions[senderDevice] || { x: canvasW * 0.1, y: canvasH * 0.5 };
+        
+        // Simulate ack traveling back after a short delay
+        setTimeout(() => {
+            packets.push({
+                id: 'ack-' + packetId + '-' + Date.now(),
+                packetId: packetId,
+                fromX: devicePos.x,
+                fromY: devicePos.y,
+                toX: senderPos.x,
+                toY: senderPos.y,
+                progress: 0,
+                color: '#f781a8',
+                isAck: true,
+                timestamp: Date.now(),
+                isReturn: true
+            });
+        }, 500);
+    }
+}
+
+function renderRacePanel(packetId) {
+    const race = races[packetId];
+    if (!race) return;
+    
+    const container = document.getElementById('raceEntries');
+    container.innerHTML = race.entries.map(entry => `
+        <div class="race-entry ${entry.isWinner ? 'winner' : (entry.result === 'settled' ? 'pending' : 'loser')}">
+            <span class="race-device">${entry.deviceId}</span>
+            <span class="race-time">${entry.timestampStr}</span>
+            <span class="race-result ${entry.result === 'settled' ? 'settled' : (entry.result === 'duplicate' ? 'duplicate' : 'rejected')}">
+                ${entry.result.toUpperCase()}
+            </span>
+            ${entry.isWinner ? ' ✓ Winner' : (entry.result === 'duplicate' ? ' ✗ Duplicate' : ' ✗ Rejected')}
+        </div>
+    `).join('');
+}
+
+function renderTechnicalEvent(event) {
+    const container = document.getElementById('techEvents');
+    const timeStr = new Date(event.timestamp_ms).toISOString().substr(11, 12);
+    const hash = event.packet_id.substring(0, 12) + '...';
+    
+    let badgeClass = 'badge-pending';
+    let badgeText = 'Gossip Hop';
+    if (event.event_type === 'bridge_upload') {
+        if (event.result === 'settled') { badgeClass = 'badge-settled'; badgeText = 'Settled'; }
+        else if (event.result === 'duplicate') { badgeClass = 'badge-duplicate'; badgeText = 'Duplicate'; }
+        else { badgeClass = 'badge-rejected'; badgeText = 'Rejected'; }
+    }
+    
+    const row = document.createElement('div');
+    row.className = 'tech-row';
+    row.style.animation = 'slideUp 0.3s ease-out';
+    row.innerHTML = `
+        <span class="tech-label">Time:</span><span class="tech-value">${timeStr}</span>
+        <span class="tech-label">Packet:</span><span class="tech-value">${hash}</span>
+        <span class="tech-label">Type:</span><span class="tech-value">${event.event_type}</span>
+        ${event.from_device ? `<span class="tech-label">From:</span><span class="tech-value">${event.from_device}</span>` : ''}
+        ${event.to_device ? `<span class="tech-label">To:</span><span class="tech-value">${event.to_device}</span>` : ''}
+        ${event.device_id ? `<span class="tech-label">Bridge:</span><span class="tech-value">${event.device_id}</span>` : ''}
+        ${event.ttl !== undefined ? `<span class="tech-label">TTL:</span><span class="tech-value">${event.ttl}</span>` : ''}
+        ${event.result ? `<span class="tech-label">Result:</span><span class="tech-badge ${badgeClass}">${badgeText}</span>` : ''}
+    `;
+    container.insertBefore(row, container.firstChild);
+    
+    // Limit rows
+    while (container.children.length > 100) {
+        container.removeChild(container.lastChild);
+    }
+    
+    // Update cache size
+    fetch('/api/mesh/state').then(r => r.json()).then(d => {
+        document.getElementById('cacheInfo').textContent = `Idempotency cache size: ${d.idempotencyCacheSize}`;
+    });
+}
+
+function animatePackets() {
+    meshCtx.clearRect(0, 0, canvasW, canvasH);
+    
+    // Draw edges (connections between all devices)
+    const deviceIds = Object.keys(devicePositions);
+    meshCtx.strokeStyle = '#21262d';
+    meshCtx.lineWidth = 1;
+    deviceIds.forEach((id, i) => {
+        const a = devicePositions[id];
+        deviceIds.slice(i + 1).forEach(otherId => {
+            const b = devicePositions[otherId];
+            meshCtx.beginPath();
+            meshCtx.moveTo(a.x, a.y);
+            meshCtx.lineTo(b.x, b.y);
+            meshCtx.stroke();
+        });
+    });
+    
+    // Draw animated packets
+    const dt = 1/60; // 60fps
+    const speed = 0.015; // progress per frame
+    
+    packets = packets.filter(p => {
+        p.progress += speed;
+        if (p.progress >= 1) {
+            // Packet arrived
+            return false;
+        }
+        
+        const x = p.fromX + (p.toX - p.fromX) * p.progress;
+        const y = p.fromY + (p.toY - p.fromY) * p.progress;
+        
+        // Draw trail
+        meshCtx.beginPath();
+        meshCtx.moveTo(p.fromX, p.fromY);
+        meshCtx.lineTo(x, y);
+        meshCtx.strokeStyle = p.color;
+        meshCtx.lineWidth = 2;
+        meshCtx.setLineDash([6, 4]);
+        meshCtx.stroke();
+        meshCtx.setLineDash([]);
+        
+        // Draw packet dot
+        meshCtx.beginPath();
+        meshCtx.arc(x, y, 6, 0, Math.PI * 2);
+        meshCtx.fillStyle = p.color;
+        meshCtx.fill();
+        meshCtx.strokeStyle = '#fff';
+        meshCtx.lineWidth = 2;
+        meshCtx.stroke();
+        
+        return true;
+    });
+    
+    // Draw devices
+    deviceIds.forEach(id => {
+        const pos = devicePositions[id];
+        const device = devices[id];
+        const isBridge = device?.hasInternet;
+        const isKilled = device?.killed;
+        
+        // Node circle
+        meshCtx.beginPath();
+        meshCtx.arc(pos.x, pos.y, isBridge ? 18 : 14, 0, Math.PI * 2);
+        meshCtx.fillStyle = isKilled ? '#3d1a1a' : (isBridge ? '#1a3d2a' : '#1c2129');
+        meshCtx.fill();
+        meshCtx.strokeStyle = isKilled ? '#f85149' : (isBridge ? '#2ea043' : '#30363d');
+        meshCtx.lineWidth = isKilled ? 3 : 2;
+        meshCtx.stroke();
+        
+        // Pulse animation for bridges with packets
+        if (isBridge && device.packetCount > 0 && !isKilled) {
+            const pulseSize = 18 + Math.sin(Date.now() / 200) * 3;
+            meshCtx.beginPath();
+            meshCtx.arc(pos.x, pos.y, pulseSize, 0, Math.PI * 2);
+            meshCtx.strokeStyle = 'rgba(46, 160, 67, 0.4)';
+            meshCtx.lineWidth = 2;
+            meshCtx.stroke();
+        }
+        
+        // Device label
+        meshCtx.fillStyle = '#e6edf3';
+        meshCtx.font = '11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        meshCtx.textAlign = 'center';
+        meshCtx.fillText(id.replace('phone-', ''), pos.x, pos.y + (isBridge ? 28 : 24));
+        
+        // Internet badge
+        if (isBridge) {
+            meshCtx.fillStyle = '#2ea043';
+            meshCtx.beginPath();
+            meshCtx.arc(pos.x + (isBridge ? 12 : 10), pos.y - (isBridge ? 12 : 10), 6, 0, Math.PI * 2);
+            meshCtx.fill();
+            meshCtx.fillStyle = '#fff';
+            meshCtx.font = '8px sans-serif';
+            meshCtx.fillText('4G', pos.x + (isBridge ? 12 : 10), pos.y - (isBridge ? 12 : 10) + 3);
+        }
+        
+        // Kill switch button indicator (visual only, real button is HTML overlay)
+        if (isBridge && device.packetCount > 0 && !isKilled) {
+            // Draw small scissors icon
+            meshCtx.fillStyle = '#f85149';
+            meshCtx.font = '10px sans-serif';
+            meshCtx.fillText('✂', pos.x + 16, pos.y + 16);
+        }
+    });
+    
+    animationFrameId = requestAnimationFrame(animatePackets);
+}
+animatePackets();
+
+function setView(view) {
+    currentView = view;
+    document.getElementById('viewSimple').classList.toggle('active', view === 'simple');
+    document.getElementById('viewTechnical').classList.toggle('active', view === 'technical');
+    document.getElementById('technicalPanel').classList.toggle('visible', view === 'technical');
+    document.getElementById('racePanel').style.display = view === 'technical' && Object.keys(races).some(k => races[k].entries.length > 1) ? 'block' : 'none';
+}
+
+// ============================================================
+// CONTROL FUNCTIONS
+// ============================================================
+let prevBalances = {};
 
 function log(msg) {
     const el = document.getElementById('log');
@@ -512,8 +1192,6 @@ function log(msg) {
     if (el.childNodes.length > 1) el.insertBefore(document.createTextNode('\n'), line.nextSibling);
 }
 
-// Wraps a button's onclick handler with a spinning "loading" state so every
-// action gives instant visual feedback, not just a delayed table refresh.
 async function withLoading(btn, fn) {
     btn.classList.add('loading');
     btn.disabled = true;
@@ -525,24 +1203,8 @@ async function withLoading(btn, fn) {
     }
 }
 
-async function refresh(animate = false) {
-    // Mesh state
-    const m = await fetch('/api/mesh/state').then(r => r.json());
-    const devicesDiv = document.getElementById('devices');
-    devicesDiv.innerHTML = m.devices.map(d => `
-        <div class="device ${d.hasInternet ? 'bridge' : 'offline'}${animate ? ' just-in' : ''}">
-            <strong>${d.deviceId}</strong>
-            <span class="badge ${d.hasInternet ? 'badge-online' : 'badge-offline'}">
-                ${d.hasInternet ? '🌐 4G' : '🚫 OFFLINE'}
-            </span>
-            <span class="small">holding ${d.packetCount} packet(s)</span>
-            <div>${d.packetIds.map(id => `<span class="packet-id${animate ? ' just-in' : ''}">${id}</span>`).join('')}</div>
-        </div>
-    `).join('');
-    document.getElementById('cacheInfo').textContent =
-        `Idempotency cache size: ${m.idempotencyCacheSize}`;
-
-    // Accounts — flash any balance that changed since the last refresh
+async function refresh() {
+    // Accounts
     const accs = await fetch('/api/accounts').then(r => r.json());
     document.querySelector('#accounts-table tbody').innerHTML = accs.map(a => {
         const changed = prevBalances[a.vpa] !== undefined && prevBalances[a.vpa] !== a.balance;
@@ -556,7 +1218,7 @@ async function refresh(animate = false) {
     // Transactions
     const txs = await fetch('/api/transactions').then(r => r.json());
     document.querySelector('#tx-table tbody').innerHTML = txs.map(t => `
-        <tr class="${animate ? 'just-in' : ''}">
+        <tr class="just-in">
             <td>${t.id}</td><td>${t.senderVpa}</td><td>${t.receiverVpa}</td>
             <td class="balance">₹${parseFloat(t.amount).toFixed(2)}</td>
             <td class="status-${t.status}">${t.status}</td>
@@ -582,7 +1244,15 @@ async function sendPacket(evt) {
         }).then(r => r.json());
         log(`📤 Packet ${r.packetId.substring(0,8)} encrypted & injected at ${r.injectedAt} (TTL ${r.ttl})`);
         log(`   ciphertext (truncated): ${r.ciphertextPreview}`);
-        await refresh(true);
+        
+        // Update local state immediately
+        await fetchMeshState();
+        renderTechnicalEvent({
+            event_type: 'inject',
+            packet_id: r.packetId,
+            from_device: 'phone-alice',
+            timestamp_ms: Date.now()
+        });
     });
 }
 
@@ -590,7 +1260,7 @@ async function gossip(evt) {
     await withLoading(evt.target, async () => {
         const r = await fetch('/api/mesh/gossip', {method: 'POST'}).then(r => r.json());
         log(`🔄 Gossip: ${r.transfers} transfer(s) — ${JSON.stringify(r.deviceCounts)}`);
-        await refresh(true);
+        await fetchMeshState();
     });
 }
 
@@ -618,7 +1288,7 @@ async function flushBridges(evt) {
             );
         }
 
-        await refresh(true);
+        await fetchMeshState();
     });
 }
 
@@ -626,15 +1296,92 @@ async function resetMesh(evt) {
     await withLoading(evt.target, async () => {
         await fetch('/api/mesh/reset', {method: 'POST'});
         prevBalances = {};
+        races = {};
+        packets = [];
+        document.getElementById('racePanel').style.display = 'none';
+        document.getElementById('techEvents').innerHTML = '';
         log('🗑 mesh + idempotency cache cleared');
-        await refresh(true);
+        await fetchMeshState();
     });
 }
 
-// Initial load animates once; the periodic background poll (every 3s) keeps
-// data fresh WITHOUT replaying any animations — animate=false by default.
-refresh(true);
-setInterval(() => refresh(false), 3000);
+async function killBridge(deviceId) {
+    if (!confirm(`Kill bridge "${deviceId}"? This device will drop out of the mesh instantly.`)) return;
+    
+    await fetch('/api/mesh/kill-bridge', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({deviceId})
+    });
+    
+    // Mark as killed locally for immediate visual feedback
+    if (devices[deviceId]) {
+        devices[deviceId].killed = true;
+    }
+    log(`✂️ Killed bridge: ${deviceId}`);
+}
+
+// Journey Modal
+function openJourneyModal(transactionId) {
+    fetch(`/api/transactions/journey?transactionId=${transactionId}`)
+        .then(r => r.json())
+        .then(data => renderJourney(data))
+        .catch(err => {
+            log(`Failed to load journey: ${err}`);
+        });
+}
+
+function closeJourneyModal() {
+    document.getElementById('journeyModal').classList.remove('visible');
+}
+
+function renderJourney(data) {
+    const container = document.getElementById('journeySteps');
+    const steps = data.hops || [];
+    
+    container.innerHTML = steps.map((step, i) => {
+        let iconClass = 'gossip';
+        let iconChar = '↔';
+        if (step.event === 'injected') { iconClass = 'inject'; iconChar = '📤'; }
+        else if (step.event === 'bridge_upload') { iconClass = 'bridge'; iconChar = '📡'; }
+        else if (step.event === 'ack_generated' || step.event === 'ack_hop' || step.event === 'ack_received') { iconClass = 'ack'; iconChar = '📥'; }
+        
+        return `
+        <div class="journey-step ${i === steps.length - 1 ? 'current' : ''}">
+            <div class="journey-icon ${iconClass}">${iconChar}</div>
+            <div class="journey-details">
+                <div class="journey-title">${step.event.replace('_', ' ').toUpperCase()}</div>
+                <div class="journey-meta">
+                    Device: ${step.deviceId} | Time: ${new Date(step.timestampMs).toISOString().substr(11, 12)}
+                    ${step.ttl !== undefined ? ` | TTL: ${step.ttl}` : ''}
+                    ${step.result ? ` | Result: ${step.result}` : ''}
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+    
+    const summary = document.getElementById('journeySummary');
+    summary.textContent = `Transaction #${data.transactionId} | Packet: ${data.packetId?.substring(0,12)}... | Hops: ${data.hopCount} | Bridge: ${data.bridgeNodeId} | Round-trip: ${data.totalRoundTripMs}ms`;
+    
+    document.getElementById('journeyModal').classList.add('visible');
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+async function init() {
+    await fetchMeshState();
+    await refresh();
+    connectEventStream();
+    
+    // Poll for mesh state updates (for device packet counts)
+    setInterval(async () => {
+        await fetchMeshState();
+    }, 3000);
+}
+
+init();
 </script>
 </body>
 </html>

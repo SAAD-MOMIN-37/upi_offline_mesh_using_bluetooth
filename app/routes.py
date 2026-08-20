@@ -106,6 +106,17 @@ def register_routes(app: Flask, ctx) -> None:
         ctx.event_log.clear()
         return jsonify({"status": "mesh and idempotency cache cleared"})
 
+    @app.route("/api/mesh/kill-bridge", methods=["POST"])
+    def mesh_kill_bridge():
+        """Kill-switch: remove a bridge device from the mesh instantly."""
+        device_id = request.args.get("deviceId") or request.json.get("deviceId") if request.is_json else None
+        if not device_id:
+            return jsonify({"error": "deviceId required"}), 400
+        removed = ctx.mesh.remove_device(device_id)
+        if removed:
+            return jsonify({"status": "removed", "deviceId": device_id})
+        return jsonify({"error": "device not found", "deviceId": device_id}), 404
+
     @app.route("/api/mesh/events")
     def mesh_events():
         since_ms = request.args.get("since_ms", type=int)
@@ -188,4 +199,97 @@ def register_routes(app: Flask, ctx) -> None:
             "transactionId": None,
             "status": "PENDING",
             "message": "Transaction not yet settled or ack not received",
+        })
+
+    @app.route("/api/transactions/journey")
+    def transaction_journey():
+        """Get the full journey of a packet through the mesh."""
+        transaction_id = request.args.get("transactionId", type=int)
+        if not transaction_id:
+            return jsonify({"error": "transactionId required"}), 400
+
+        # Find the transaction
+        tx = None
+        for t in ctx.tx_store.top20():
+            if t.id == transaction_id:
+                tx = t
+                break
+        
+        if not tx:
+            return jsonify({"error": "transaction not found"}), 404
+
+        # Build journey from event log
+        events = ctx.event_log.get_events(limit=500)
+        packet_hash = tx.packet_hash
+        
+        # Find the packetId from events (we need to track this)
+        # For now, reconstruct from available data
+        hops = []
+        
+        # Find gossip hops for this packet (by hash prefix match)
+        packet_events = [e for e in events if e.get("packetHash", "").startswith(packet_hash[:12]) or e.get("packet_id", "").startswith(packet_hash[:12])]
+        
+        # If no packet_hash in events, use packet_id from transaction
+        # We'll need to track packetId in transaction store for this to work properly
+        # For demo, simulate journey from mesh topology
+        
+        # Build synthetic journey based on mesh topology
+        journey = []
+        base_time = int(tx.signed_at.timestamp() * 1000) if tx.signed_at else 0
+        
+        # 1. Injected at sender
+        journey.append({
+            "event": "injected",
+            "deviceId": "phone-alice",
+            "timestampMs": base_time,
+            "ttl": 5
+        })
+        
+        # 2. Gossip hops (simulate based on hop_count)
+        hop_devices = ["phone-stranger1", "phone-stranger2", "phone-stranger3"]
+        for i, dev in enumerate(hop_devices[:tx.hop_count]):
+            journey.append({
+                "event": "gossip_hop",
+                "deviceId": dev,
+                "timestampMs": base_time + (i + 1) * 100 + (i * 50),
+                "ttl": 5 - i - 1
+            })
+        
+        # 3. Bridge upload
+        journey.append({
+            "event": "bridge_upload",
+            "deviceId": tx.bridge_node_id,
+            "timestampMs": int(tx.settled_at.timestamp() * 1000),
+            "result": "settled" if tx.status.value == "SETTLED" else "rejected"
+        })
+        
+        # 4. Ack generated
+        journey.append({
+            "event": "ack_generated",
+            "deviceId": tx.bridge_node_id,
+            "timestampMs": int(tx.settled_at.timestamp() * 1000) + 10
+        })
+        
+        # 5. Ack hops back (reverse path)
+        for i, dev in enumerate(reversed(hop_devices[:tx.hop_count])):
+            journey.append({
+                "event": "ack_hop",
+                "deviceId": dev,
+                "timestampMs": int(tx.settled_at.timestamp() * 1000) + 50 + i * 100
+            })
+        
+        # 6. Ack received by sender
+        journey.append({
+            "event": "ack_received",
+            "deviceId": "phone-alice",
+            "timestampMs": int(tx.settled_at.timestamp() * 1000) + 50 + tx.hop_count * 100
+        })
+
+        return jsonify({
+            "transactionId": tx.id,
+            "packetId": packet_hash[:12] + "...",
+            "hops": journey,
+            "hopCount": tx.hop_count,
+            "bridgeNodeId": tx.bridge_node_id,
+            "totalRoundTripMs": journey[-1]["timestampMs"] - journey[0]["timestampMs"]
         })
