@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: upimesh-postgres
+    environment:
+      POSTGRES_DB: upimesh
+      POSTGRES_USER: upimesh
+      POSTGRES_PASSWORD: upimesh
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U upimesh -d upimesh"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: upimesh-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: upimesh-backend
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://upimesh:upimesh@postgres:5432/upimesh?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      PORT: "8080"
+      GIN_MODE: debug
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/bin
+    command: air -c .air.toml
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore:
+            - bin/
+            - vendor/
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: upimesh-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8080
+      VITE_WS_URL: ws://localhost:8080
+      VITE_APP_NAME: "UPI Mesh Pay"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/dist
+    command: npm run dev -- --host 0.0.0.0
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend
+          target: /app
+          ignore:
+            - node_modules/
+            - dist/
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: upimesh-network

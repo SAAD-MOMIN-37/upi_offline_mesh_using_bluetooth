@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package upimesh.v1;
+
+option go_package = "github.com/upi-mesh-app/shared/gen/go/upimesh/v1;upimeshv1";
+option java_package = "com.upimesh.v1";
+option java_multiple_files = true;
+
+message Packet {
+  string id = 1;
+  uint32 ttl = 2;
+  bytes ciphertext = 3;
+  int64 created_at = 4;
+  PacketMetadata metadata = 5;
+}
+
+message PacketMetadata {
+  bool is_ack = 1;
+  string original_packet_id = 2;
+  string ack_transaction_id = 3;
+}
+
+message PaymentInstruction {
+  string sender_vpa = 1;
+  string receiver_vpa = 2;
+  string amount = 3;
+  string pin_hash = 4;
+  string nonce = 5;
+  int64 signed_at = 6;
+  bytes ack_key = 7;
+  string original_packet_id = 8;
+}
+
+message AckPayload {
+  int64 transaction_id = 1;
+  string status = 2;
+  string amount = 3;
+  int64 timestamp = 4;
+  string original_packet_id = 5;
+  string bridge_node_id = 6;
+}

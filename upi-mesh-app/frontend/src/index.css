@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply bg-mesh-bg text-mesh-text min-h-screen;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  * {
+    @apply border-mesh-border;
+  }
+  
+  ::selection {
+    @apply bg-mesh-accent/30 text-mesh-text;
+  }
+  
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-mesh-border rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-mesh-muted;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-mesh-bg disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply btn bg-mesh-success text-white hover:bg-mesh-success/90 active:bg-mesh-success/80 focus-visible:ring-mesh-success;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-mesh-card text-mesh-text border border-mesh-border hover:bg-mesh-border active:bg-mesh-border/80 focus-visible:ring-mesh-accent;
+  }
+  
+  .btn-danger {
+    @apply btn bg-mesh-danger text-white hover:bg-mesh-danger/90 active:bg-mesh-danger/80 focus-visible:ring-mesh-danger;
+  }
+  
+  .btn-ghost {
+    @apply btn bg-transparent text-mesh-text hover:bg-mesh-border active:bg-mesh-border/80 focus-visible:ring-mesh-accent;
+  }
+  
+  .card {
+    @apply bg-mesh-card border border-mesh-border rounded-2xl p-6 shadow-lg;
+  }
+  
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-mesh-accent/50 hover:shadow-xl hover:-translate-y-0.5;
+  }
+  
+  .input {
+    @apply w-full px-4 py-3 bg-mesh-bg border border-mesh-border rounded-xl text-mesh-text placeholder-mesh-muted focus:outline-none focus:ring-2 focus:ring-mesh-accent focus:border-transparent transition-all duration-200;
+  }
+  
+  .input-error {
+    @apply border-mesh-danger focus:ring-mesh-danger;
+  }
+  
+  .label {
+    @apply block text-sm font-medium text-mesh-text mb-2;
+  }
+  
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply badge bg-mesh-success/20 text-mesh-success;
+  }
+  
+  .badge-warning {
+    @apply badge bg-mesh-warning/20 text-mesh-warning;
+  }
+  
+  .badge-danger {
+    @apply badge bg-mesh-danger/20 text-mesh-danger;
+  }
+  
+  .badge-info {
+    @apply badge bg-mesh-info/20 text-mesh-info;
+  }
+  
+  .badge-neutral {
+    @apply badge bg-mesh-border text-mesh-muted;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .animate-in {
+    animation: fadeIn 0.3s ease-out, slideUp 0.3s ease-out;
+  }
+  
+  .glass {
+    @apply bg-mesh-card/80 backdrop-blur-xl border border-mesh-border/50;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-mesh-accent to-mesh-success bg-clip-text text-transparent;
+  }
+}

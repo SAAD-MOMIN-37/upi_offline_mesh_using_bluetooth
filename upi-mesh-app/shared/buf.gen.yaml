@@ -1,0 +1,19 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/upi-mesh-app/shared/gen/go
+  disable:
+    - go
+    - java
+    - python
+plugins:
+  - local: protoc-gen-go
+    out: gen/go
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: gen/go
+    opt: paths=source_relative
+  - local: protoc-gen-ts
+    out: gen/ts
+    opt: paths=source_relative

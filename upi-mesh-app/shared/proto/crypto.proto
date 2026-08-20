@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package upimesh.v1;
+
+option go_package = "github.com/upi-mesh-app/shared/gen/go/upimesh/v1;upimeshv1";
+
+message ServerPublicKey {
+  string public_key = 1;
+  string algorithm = 2;
+  string hybrid_scheme = 3;
+}
+
+message EncryptRequest {
+  PaymentInstruction instruction = 1;
+}
+
+message EncryptResponse {
+  string ciphertext = 1;
+}
+
+message DecryptRequest {
+  string ciphertext = 1;
+}
+
+message DecryptResponse {
+  PaymentInstruction instruction = 1;
+}

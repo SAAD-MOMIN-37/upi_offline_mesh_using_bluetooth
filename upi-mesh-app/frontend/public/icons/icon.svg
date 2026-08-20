@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#58a6ff"/>
+      <stop offset="100%" style="stop-color:#2ea043"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bg)" rx="100"/>
+  
+  <!-- Mesh network visualization -->
+  <g stroke="url(#accent)" stroke-width="3" fill="none">
+    <!-- Nodes -->
+    <circle cx="160" cy="160" r="8" fill="url(#accent)"/>
+    <circle cx="352" cy="160" r="8" fill="url(#accent)"/>
+    <circle cx="160" cy="352" r="8" fill="url(#accent)"/>
+    <circle cx="352" cy="352" r="8" fill="url(#accent)"/>
+    <circle cx="256" cy="256" r="12" fill="#2ea043"/>
+    
+    <!-- Connections -->
+    <path d="M168 160 H344" stroke-dasharray="8,4"/>
+    <path d="M160 168 V344" stroke-dasharray="8,4"/>
+    <path d="M352 168 V344" stroke-dasharray="8,4"/>
+    <path d="M168 352 H344" stroke-dasharray="8,4"/>
+    <path d="M168 168 L244 244" stroke-dasharray="8,4"/>
+    <path d="M344 168 L268 244" stroke-dasharray="8,4"/>
+    <path d="M168 344 L244 268" stroke-dasharray="8,4"/>
+    <path d="M344 344 L268 268" stroke-dasharray="8,4"/>
+  </g>
+  
+  <!-- UPI text -->
+  <text x="256" y="450" text-anchor="middle" font-family="system-ui, sans-serif" font-size="48" font-weight="bold" fill="url(#accent)">UPI</text>
+</svg>

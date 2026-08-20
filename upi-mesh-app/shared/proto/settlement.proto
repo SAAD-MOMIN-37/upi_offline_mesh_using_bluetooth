@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package upimesh.v1;
+
+option go_package = "github.com/upi-mesh-app/shared/gen/go/upimesh/v1;upimeshv1";
+
+message SettlementRequest {
+  string packet_hash = 1;
+  PaymentInstruction instruction = 2;
+  string bridge_node_id = 3;
+  uint32 hop_count = 4;
+}
+
+message SettlementResponse {
+  string outcome = 1;
+  string packet_hash = 2;
+  string reason = 3;
+  int64 transaction_id = 4;
+}
+
+message Transaction {
+  int64 id = 1;
+  string packet_hash = 2;
+  string sender_vpa = 3;
+  string receiver_vpa = 4;
+  string amount = 5;
+  int64 signed_at = 6;
+  int64 settled_at = 7;
+  string bridge_node_id = 8;
+  uint32 hop_count = 9;
+  string status = 10;
+}
+
+message TransactionListRequest {
+  string vpa = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message TransactionListResponse {
+  repeated Transaction transactions = 1;
+}
