@@ -22,7 +22,7 @@ class AppContext:
     def __init__(self):
         self.server_key = ServerKeyHolder()
         self.crypto = HybridCryptoService(self.server_key)
-        self.idempotency = IdempotencyService(ttl_seconds=86400)
+        self.idempotency = IdempotencyService(ttl_seconds=259200)
         self.mesh = MeshSimulatorService()
 
         self.accounts: dict = {}
