@@ -162,6 +162,28 @@
         .status-DUPLICATE_DROPPED { color: #d29922; font-weight: 600; }
         .status-INVALID { color: #f85149; font-weight: 600; }
         .status-PENDING { color: #58a6ff; font-weight: 600; }
+        .status-DECRYPTION_FAILED { color: #f85149; font-weight: 600; }
+        .status-STALE_PACKET { color: #f85149; font-weight: 600; }
+        .status-FUTURE_DATED { color: #f85149; font-weight: 600; }
+        .status-INSUFFICIENT_BALANCE { color: #58a6ff; font-weight: 600; }
+        .status-INTERNAL_ERROR { color: #f85149; font-weight: 600; }
+
+        /* Failure reason badges for race panel and logs */
+        .reason-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .reason-tampered { background: rgba(248,81,73,0.2); color: #f85149; border: 1px solid #f85149; }
+        .reason-expired { background: rgba(248,81,73,0.2); color: #f85149; border: 1px solid #f85149; }
+        .reason-clock-skew { background: rgba(248,81,73,0.2); color: #f85149; border: 1px solid #f85149; }
+        .reason-insufficient { background: rgba(88,166,255,0.2); color: #58a6ff; border: 1px solid #58a6ff; }
+        .reason-duplicate { background: rgba(210,153,34,0.2); color: #d29922; border: 1px solid #d29922; }
+        .reason-unknown { background: rgba(139,148,158,0.2); color: #8b949e; border: 1px solid #8b949e; }
 
         #log {
             background: transparent;
@@ -1009,16 +1031,20 @@ function renderRacePanel(packetId) {
     if (!race) return;
     
     const container = document.getElementById('raceEntries');
-    container.innerHTML = race.entries.map(entry => `
+    container.innerHTML = race.entries.map(entry => {
+        const reasonBadge = entry.reason ? `<span class="reason-badge ${getReasonBadgeClass(entry.reason)}">${getReasonLabel(entry.reason)}</span>` : '';
+        return `
         <div class="race-entry ${entry.isWinner ? 'winner' : (entry.result === 'settled' ? 'pending' : 'loser')}">
             <span class="race-device">${entry.deviceId}</span>
             <span class="race-time">${entry.timestampStr}</span>
             <span class="race-result ${entry.result === 'settled' ? 'settled' : (entry.result === 'duplicate' ? 'duplicate' : 'rejected')}">
                 ${entry.result.toUpperCase()}
             </span>
+            ${reasonBadge}
             ${entry.isWinner ? ' ✓ Winner' : (entry.result === 'duplicate' ? ' ✗ Duplicate' : ' ✗ Rejected')}
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function renderTechnicalEvent(event) {
@@ -1031,6 +1057,7 @@ function renderTechnicalEvent(event) {
     if (event.event_type === 'bridge_upload') {
         if (event.result === 'settled') { badgeClass = 'badge-settled'; badgeText = 'Settled'; }
         else if (event.result === 'duplicate') { badgeClass = 'badge-duplicate'; badgeText = 'Duplicate'; }
+        else if (event.result === 'insufficient_balance') { badgeClass = 'badge-pending'; badgeText = 'Insufficient Balance'; }
         else { badgeClass = 'badge-rejected'; badgeText = 'Rejected'; }
     }
     
@@ -1264,15 +1291,53 @@ async function gossip(evt) {
     });
 }
 
+function getReasonIcon(reason) {
+    const icons = {
+        'decryption_failed': '🔴',
+        'stale_packet': '🟠',
+        'future_dated': '🟠',
+        'insufficient_balance': '🔵',
+        'duplicate': '🟡',
+        'internal_error': '⚫'
+    };
+    return icons[reason] || '⚪';
+}
+
+function getReasonLabel(reason) {
+    const labels = {
+        'decryption_failed': 'Tampered Packet',
+        'stale_packet': 'Expired Packet',
+        'future_dated': 'Clock Skew',
+        'insufficient_balance': 'Insufficient Balance',
+        'duplicate': 'Duplicate Dropped',
+        'internal_error': 'Internal Error'
+    };
+    return labels[reason] || reason;
+}
+
+function getReasonBadgeClass(reason) {
+    const classes = {
+        'decryption_failed': 'reason-tampered',
+        'stale_packet': 'reason-expired',
+        'future_dated': 'reason-clock-skew',
+        'insufficient_balance': 'reason-insufficient',
+        'duplicate': 'reason-duplicate',
+        'internal_error': 'reason-unknown'
+    };
+    return classes[reason] || 'reason-unknown';
+}
+
 async function flushBridges(evt) {
     await withLoading(evt.target, async () => {
         const r = await fetch('/api/mesh/flush', {method: 'POST'}).then(r => r.json());
         log(`📡 ${r.uploadsAttempted} bridge upload(s):`);
         let settledCount = 0;
         r.results.forEach(res => {
+            const icon = getReasonIcon(res.reason);
+            const label = getReasonLabel(res.reason);
             log(`   ${res.bridgeNode} packet ${res.packetId} → ${res.outcome}` +
-                (res.reason ? ` (${res.reason})` : ''));
-            if (res.outcome === 'SETTLED') settledCount++;
+                (res.reason ? ` ${icon} ${label}` : ''));
+            if (res.outcome === 'SETTLED' || res.outcome === 'INSUFFICIENT_BALANCE') settledCount++;
         });
 
         if (r.uploadsAttempted > 0) {

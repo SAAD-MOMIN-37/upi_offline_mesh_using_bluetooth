@@ -47,7 +47,7 @@ class BridgeIngestionService:
                 if self.event_log:
                     self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.DUPLICATE)
                 return {"outcome": "DUPLICATE_DROPPED", "packetHash": packet_hash,
-                        "reason": None, "transactionId": None}
+                        "reason": "duplicate", "transactionId": None}
 
             # ---- Decrypt ----
             try:
@@ -56,7 +56,7 @@ class BridgeIngestionService:
                 logger.warning("Decryption failed for packet %s: %s", packet_hash[:12] + "...", e)
                 if self.event_log:
                     self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_DECRYPT_FAIL)
-                return {"outcome": "INVALID", "packetHash": packet_hash,
+                return {"outcome": "DECRYPTION_FAILED", "packetHash": packet_hash,
                         "reason": "decryption_failed", "transactionId": None}
 
             # ---- Freshness check (replay protection) ----
@@ -66,12 +66,12 @@ class BridgeIngestionService:
                 logger.warning("Packet %s too old (%ss), rejected", packet_hash[:12] + "...", age_seconds)
                 if self.event_log:
                     self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_STALE)
-                return {"outcome": "INVALID", "packetHash": packet_hash,
+                return {"outcome": "STALE_PACKET", "packetHash": packet_hash,
                         "reason": "stale_packet", "transactionId": None}
             if age_seconds < -300:  # small clock-skew tolerance
                 if self.event_log:
                     self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_FUTURE_DATED)
-                return {"outcome": "INVALID", "packetHash": packet_hash,
+                return {"outcome": "FUTURE_DATED", "packetHash": packet_hash,
                         "reason": "future_dated", "transactionId": None}
 
             # ---- Settle ----
@@ -85,15 +85,17 @@ class BridgeIngestionService:
             if tx.status.value == "REJECTED":
                 if self.event_log:
                     self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.REJECTED_INSUFFICIENT_BALANCE)
+                return {"outcome": "INSUFFICIENT_BALANCE", "packetHash": packet_hash,
+                        "reason": "insufficient_balance", "transactionId": tx.id}
             else:
                 if self.event_log:
                     self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.SETTLED)
-            return {"outcome": "SETTLED", "packetHash": packet_hash,
-                     "reason": None, "transactionId": tx.id}
+                return {"outcome": "SETTLED", "packetHash": packet_hash,
+                        "reason": None, "transactionId": tx.id}
 
         except Exception as e:
             logger.error("Ingestion error: %s", e, exc_info=True)
             if self.event_log:
                 self.event_log.log_bridge_upload(packet_id, bridge_node_id, BridgeUploadResult.INTERNAL_ERROR)
-            return {"outcome": "INVALID", "packetHash": "?",
+            return {"outcome": "INTERNAL_ERROR", "packetHash": "?",
                      "reason": f"internal_error: {e}", "transactionId": None}
