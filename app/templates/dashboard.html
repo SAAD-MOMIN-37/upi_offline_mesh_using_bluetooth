@@ -1245,12 +1245,13 @@ async function refresh() {
     // Transactions
     const txs = await fetch('/api/transactions').then(r => r.json());
     document.querySelector('#tx-table tbody').innerHTML = txs.map(t => `
-        <tr class="just-in">
+        <tr class="just-in" style="cursor:pointer" onclick="openJourneyModal(${t.id})">
             <td>${t.id}</td><td>${t.senderVpa}</td><td>${t.receiverVpa}</td>
             <td class="balance">₹${parseFloat(t.amount).toFixed(2)}</td>
             <td class="status-${t.status}">${t.status}</td>
             <td>${t.bridgeNodeId}</td><td>${t.hopCount}</td>
             <td class="small">${new Date(t.settledAt).toLocaleTimeString()}</td>
+            <td class="small">🔍 Click for journey</td>
         </tr>
     `).join('');
 }
